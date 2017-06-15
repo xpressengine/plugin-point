@@ -1,0 +1,44 @@
+{
+  "name": "xpressengine-plugin/point",
+  "description": "Point system for user",
+  "keywords": [
+    "xpressengine",
+    "plugin",
+    "point",
+    "user",
+    "mileage"
+  ],
+  "version": "0.9.0",
+  "type": "xpressengine-plugin",
+  "support": {
+    "email": "developers@xpressengine.com"
+  },
+  "authors": [
+    {
+      "name": "XE Developers",
+      "email": "developers@xpressengine.com",
+      "homepage": "http://xpressengine.io",
+      "role": "Developer"
+    }
+  ],
+  "license": "LGPL-2.1",
+  "extra": {
+    "xpressengine": {
+      "title": "Point",
+      "component": {
+        "user/toggleMenu/point@point": {
+          "class": "Xpressengine\\Plugins\\Point\\UserMenus\\PointItem",
+          "name": "포인트 내역",
+          "description": "포인트 내역 토글 매뉴를 출력합니다."
+        }
+      }
+    }
+  },
+  "require": {
+  },
+  "autoload": {
+    "psr-4": {
+      "Xpressengine\\Plugins\\Point\\": "src/"
+    }
+  }
+}

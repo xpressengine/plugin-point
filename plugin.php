@@ -5,7 +5,12 @@ use Carbon\Carbon;
 use Illuminate\Database\Schema\Blueprint;
 use Route;
 use Schema;
+use Xpressengine\Config\ConfigEntity;
 use Xpressengine\Plugin\AbstractPlugin;
+use Xpressengine\Plugins\Board\Models\Board;
+use Xpressengine\Plugins\Board\Modules\BoardModule;
+use Xpressengine\Plugins\Comment\Models\Comment;
+use Xpressengine\User\UserInterface;
 
 class Plugin extends AbstractPlugin
 {
@@ -46,6 +51,7 @@ class Plugin extends AbstractPlugin
 
     protected function registerEvent()
     {
+        // user - register
         intercept(
             'XeUser@create',
             'point@create',
@@ -59,6 +65,7 @@ class Plugin extends AbstractPlugin
             }
         );
 
+        // user - login
         app('events')->listen('auth.login', function ($user) {
             if ($user->loginAt === null) {
                 return $user;
@@ -68,6 +75,121 @@ class Plugin extends AbstractPlugin
             }
             app('point::handler')->executeAction('user_login', $user);
         });
+
+        // board - write document
+        intercept(
+            '\Xpressengine\Plugins\Board\Handler@add',
+            'point.board-write-document',
+            function ($target, array $args, UserInterface $user, ConfigEntity $config) {
+
+                $skip = false;
+
+                if ($user instanceof Guest) {
+                    $skip = true;
+                }
+
+                /** @var Board $boardDoc */
+                $boardDoc = $target($args, $user, $config);
+
+                if ($skip === false) {
+                    app('point::handler')->executeAction(
+                        'board.write-document.'.$boardDoc->getInstanceId(),
+                        $user,
+                        ['document_id' => $boardDoc->id, 'type' => 'create']
+                    );
+                }
+
+                return $boardDoc;
+            }
+        );
+
+        // board - restore document
+        intercept(
+            '\Xpressengine\Plugins\Board\Handler@restore',
+            'point.board-restore-document',
+            function ($target, Board $boardDoc, ConfigEntity $config) {
+
+                /** @var Board $boardDoc */
+                $target($boardDoc, $config);
+
+                app('point::handler')->executeAction(
+                    'board.write-document.'.$boardDoc->getInstanceId(),
+                    $boardDoc->getUserId(),
+                    ['document_id' => $boardDoc->id, 'type' => 'restore']
+                );
+
+                return $boardDoc;
+            }
+        );
+
+        // board - delete document
+        intercept(
+            ['\Xpressengine\Plugins\Board\Handler@remove', '\Xpressengine\Plugins\Board\Handler@trash'],
+            'point.board-delete-document',
+            function ($target, Board $board, ConfigEntity $config) {
+                $target($board, $config);
+
+                $type = $target->getTargetMethodName();
+
+                app('point::handler')->executeAction(
+                    'board.delete-document.'.$board->getInstanceId(),
+                    $board->getUserId(),
+                    ['document_id' => $board->id, 'type' => $type]
+                );
+            }
+        );
+
+        // board - write comment
+        intercept(
+            ['Xpressengine\Plugins\Comment\Handler@create', 'Xpressengine\Plugins\Comment\Handler@restore'],
+            'point.write-comment',
+            function ($target, $inputs, $user = null) {
+                /** @var Comment $comment */
+                $comment = $target($inputs, $user);
+                $boardDoc = Board::find($comment->target->targetId);
+
+                if ($boardDoc == null) {
+                    return $comment;
+                }
+                if ($boardDoc->type != BoardModule::getId()) {
+                    return $comment;
+                }
+
+                $type = $target->getTargetMethodName();
+
+                app('point::handler')->executeAction(
+                    'board.write-comment.'.$boardDoc->getInstanceId(),
+                    $comment->getAuthor(),
+                    ['document_id' => $boardDoc->id, 'comment_id' => $comment->id, 'type' => $type]
+                );
+
+                return $comment;
+            }
+        );
+
+        // board - delete or trash comment
+        intercept(
+            ['Xpressengine\Plugins\Comment\Handler@trash'/*, 'Xpressengine\Plugins\Comment\Handler@remove'*/],
+            'point.delete-comment',
+            function ($func, Comment $comment) {
+
+                $result = $func($comment);
+
+                if ($boardDoc = Board::find($comment->target->targetId)) {
+                    if ($boardDoc->type != BoardModule::getId()) {
+                        return $result;
+                    }
+
+                    app('point::handler')->executeAction(
+                        'board.delete-comment.'.$boardDoc->getInstanceId(),
+                        $comment->getAuthor(),
+                        ['document_id' => $boardDoc->id, 'comment_id' => $comment->id]
+                    );
+                }
+
+                return $result;
+            }
+        );
     }
 
     protected function route()
@@ -115,8 +237,16 @@ class Plugin extends AbstractPlugin
      */
     public function activate($installedVersion = null)
     {
+        // user
         app('point::handler')->storeActionInfo('user_login', ['title'=>'로그인']);
         app('point::handler')->storeActionInfo('user_register', ['title'=>'가입']);
+
+        // board
+        app('point::handler')->storeActionInfo('board', ['title'=>'게시판']);
+        app('point::handler')->storeActionInfo('board.write-document', ['title'=>'게시판 글작성']);
+        app('point::handler')->storeActionInfo('board.delete-document', ['title'=>'게시판 글삭제']);
+        app('point::handler')->storeActionInfo('board.write-comment', ['title'=>'게시판 댓글작성']);
+        app('point::handler')->storeActionInfo('board.delete-comment', ['title'=>'게시판 댓글삭제']);
     }
 
     /**
@@ -149,7 +279,7 @@ class Plugin extends AbstractPlugin
 
                     $table->increments('id');
                     $table->string('userId', 36);
-                    $table->string('action', 20);
+                    $table->string('action', 200);
                     $table->bigInteger('point');
                     $table->string('content');
                     $table->timestamp('createdAt')->index();

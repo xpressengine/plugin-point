@@ -31,7 +31,7 @@
                             @foreach($logs as $log)
                                 <tr>
                                     <td>{{ $log->createdAt->format('Y.m.d H:i:s') }}</td>
-                                    <td>{{ $actions['point.'.$log->action]['title'] or $log->action }}</td>
+                                    <td>{{ $log->title }}</td>
                                     <td>{{ $log->point }}</td>
                                 </tr>
                             @endforeach

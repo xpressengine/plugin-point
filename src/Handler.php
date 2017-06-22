@@ -41,6 +41,8 @@ class Handler
      */
     private $config;
 
+    protected $actions = null;
+
     /**
      * Handler constructor.
      *
@@ -79,14 +81,37 @@ class Handler
         return $config->get('point', $default);
     }
 
+    public function getAllActions()
+    {
+        if ($this->actions !== null) {
+            return $this->actions;
+        }
+        $this->actions = [];
+        $root = $this->config->get('point');
+        $this->traverseConfig($root);
+        return $this->actions;
+    }
+
+    protected function traverseConfig($action)
+    {
+        $this->actions[$action->name] = $action;
+        foreach ($this->config->children($action) as $child) {
+            $this->traverseConfig($child);
+        }
+    }
+
     public function executeAction($action, $user, $content = [])
     {
         $config = $this->config->get('point.'.$action, true);
         $score = $config->get('point');
 
-        $this->logging($action, $user->getId(), $score, $content);
+        if ($user instanceof UserInterface) {
+            $user = $user->getId();
+        }
 
-        $point = $this->getPointObj($user->getId());
+        $this->logging($action, $user, $score, $content);
+
+        $point = $this->getPointObj($user);
         $point->point = $point->point + $score;
         $point->save();
     }

@@ -83,19 +83,11 @@ class SettingController extends Origin
         if ($user === null) {
             throw new HttpException('404', '해당 회원을 찾을 수 없습니다');
         }
-
-        $config = app('xe.config');
-
-        $actions = [];
-        $root = $config->get('point');
-        foreach (app('xe.config')->children($root) as $action) {
-            $actions[$action->name] = $action;
-        }
-
+        
         $record = Point::find($userId);
         $logs = Log::where('userId', $userId)->orderBy('createdAt', 'desc')->paginate(10);
 
-        return XePresenter::make($this->plugin->view('views.show'), compact('user', 'record', 'logs', 'actions'));
+        return XePresenter::make($this->plugin->view('views.show'), compact('user', 'record', 'logs'));
     }
 
     public function updateSection(Request $request, Handler $handler)

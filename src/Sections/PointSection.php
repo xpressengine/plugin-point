@@ -62,6 +62,7 @@ class PointSection extends Section
 
         foreach ($actions as $name => &$action) {
             $action['name'] = $name;
+            $action['title'] = $handler->getActionTitle($name, array_get($action, 'title'));
             $action['point'] = $handler->getActionPoint($name, array_get($action, 'default'));
         }
 

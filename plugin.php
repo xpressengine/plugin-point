@@ -237,12 +237,14 @@ class Plugin extends AbstractPlugin
      */
     public function activate($installedVersion = null)
     {
+        app('xe.config')->set('point', []);
+
         // user
-        app('point::handler')->storeActionInfo('user_login', ['title'=>'로그인']);
-        app('point::handler')->storeActionInfo('user_register', ['title'=>'가입']);
+        app('point::handler')->storeActionInfo('user_login', ['point'=> 10, 'title'=>'로그인']);
+        app('point::handler')->storeActionInfo('user_register', ['point'=> 50, 'title'=>'가입']);
 
         // board
-        app('point::handler')->storeActionInfo('board', ['title'=>'게시판']);
+        app('point::handler')->storeActionInfo('board', ['point'=> 10, 'title'=>'게시판']);
         app('point::handler')->storeActionInfo('board.write-document', ['title'=>'게시판 글작성']);
         app('point::handler')->storeActionInfo('board.delete-document', ['title'=>'게시판 글삭제']);
         app('point::handler')->storeActionInfo('board.write-comment', ['title'=>'게시판 댓글작성']);
@@ -298,9 +300,13 @@ class Plugin extends AbstractPlugin
      */
     public function checkInstalled()
     {
-        // implement code
-
-        return parent::checkInstalled();
+        if (!Schema::hasTable('point')) {
+            return false;
+        }
+        if (!Schema::hasTable('point_log')) {
+            return false;
+        }
+        return true;
     }
 
     /**

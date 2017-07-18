@@ -59,20 +59,23 @@ class Handler
         $this->config->set('point.'.$action, $info);
     }
 
-    public function getActionTitle($action)
-    {
-        return $this->titles[$action];
-    }
-
     public function storeActionPoint($action, $point = null)
     {
         if ($point !== null) {
             $action = [$action => $point];
         }
 
+        $action = array_dot($action);
+
         foreach ($action as $name => $point) {
-            $this->config->setVal('point.'.$name.'point', $point);
+            $this->config->setVal('point.'.$name.'.point', $point);
         }
+    }
+
+    public function getActionTitle($action, $default = '')
+    {
+        $config = $this->config->get('point.'.$action, true);
+        return $config->get('title', $default);
     }
 
     public function getActionPoint($action, $default = null)

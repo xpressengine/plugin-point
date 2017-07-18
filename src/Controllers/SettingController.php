@@ -39,7 +39,7 @@ class SettingController extends Origin
     protected $plugin;
 
     /**
-     * SocialLoginController constructor.
+     * constructor.
      *
      * @param \Xpressengine\Plugins\Point\Plugin $plugin
      */
@@ -60,6 +60,8 @@ class SettingController extends Origin
             ]
         )->load();
 
+        $section = [];
+
         $actions = [
             'user_login' => [
                 'title' => '로그인',
@@ -70,8 +72,25 @@ class SettingController extends Origin
                 'default' => 50,
             ],
         ];
+        $section['user'] = new PointSection($actions);
 
-        $section = new PointSection($actions);
+        $actions = [
+            'board.write-document' => [
+                'default' => 10
+            ],
+            'board.delete-document' => [
+                'default' => 10
+            ],
+            'board.write-comment' => [
+                'default' => 10
+            ],
+            'board.delete-comment' => [
+                'default' => 10
+            ],
+        ];
+        $section['board'] = new PointSection($actions);
+
+
 
         return XePresenter::make($this->plugin->view('views.index'), compact('plugin', 'section'));
     }
@@ -83,8 +102,8 @@ class SettingController extends Origin
         if ($user === null) {
             throw new HttpException('404', '해당 회원을 찾을 수 없습니다');
         }
-        
-        $record = Point::find($userId);
+
+        $record = Point::findOrNew($userId);
         $logs = Log::where('userId', $userId)->orderBy('createdAt', 'desc')->paginate(10);
 
         return XePresenter::make($this->plugin->view('views.show'), compact('user', 'record', 'logs'));

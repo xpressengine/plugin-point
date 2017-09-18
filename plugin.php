@@ -17,13 +17,11 @@ class Plugin extends AbstractPlugin
 
     public function register()
     {
-        app()->singleton(
-            ['point::handler' => Handler::class],
-            function ($app) {
-                $proxyClass = app('xe.interception')->proxy(Handler::class, 'Point');
-                return new $proxyClass($this, app('xe.config'));
-            }
-        );
+        app()->singleton(Handler::class, function ($app) {
+            $proxyClass = app('xe.interception')->proxy(Handler::class, 'Point');
+            return new $proxyClass($this, app('xe.config'));
+        });
+        app()->alias(Handler::class, 'point::handler');
     }
 
     /**

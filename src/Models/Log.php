@@ -24,9 +24,6 @@ use Illuminate\Database\Eloquent\Model;
      */
 class Log extends Model
 {
-    const CREATED_AT = 'createdAt';
-    const UPDATED_AT = 'updatedAt';
-
     protected $table = 'point_log';
 
     public $timestamps = true;
@@ -38,7 +35,7 @@ class Log extends Model
 
     public function user()
     {
-        $this->belongsTo(User::class, 'userId');
+        $this->belongsTo(User::class, 'user_id');
     }
 
     public function getTitleAttribute($value)

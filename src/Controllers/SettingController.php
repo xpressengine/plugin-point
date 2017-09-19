@@ -104,7 +104,7 @@ class SettingController extends Origin
         }
 
         $record = Point::findOrNew($userId);
-        $logs = Log::where('userId', $userId)->orderBy('createdAt', 'desc')->paginate(10);
+        $logs = Log::where('user_id', $userId)->orderBy('created_at', 'desc')->paginate(10);
 
         return XePresenter::make($this->plugin->view('views.show'), compact('user', 'record', 'logs'));
     }

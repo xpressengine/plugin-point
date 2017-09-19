@@ -30,7 +30,7 @@
                             <tbody>
                             @foreach($logs as $log)
                                 <tr>
-                                    <td>{{ $log->createdAt->format('Y.m.d H:i:s') }}</td>
+                                    <td>{{ $log->created_at->format('Y.m.d H:i:s') }}</td>
                                     <td>{{ $log->title }}</td>
                                     <td>{{ $log->point }}</td>
                                 </tr>

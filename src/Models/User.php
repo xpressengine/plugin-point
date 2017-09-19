@@ -28,11 +28,11 @@ class User extends OriginUser
 {
     public function point_logs()
     {
-        return $this->hasMany(Log::class, 'userId');
+        return $this->hasMany(Log::class, 'user_id');
     }
 
     public function point()
     {
-        return $this->hasOne(Point::class, 'userId');
+        return $this->hasOne(Point::class, 'user_id');
     }
 }

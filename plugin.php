@@ -262,11 +262,11 @@ class Plugin extends AbstractPlugin
                 function (Blueprint $table) {
                     $table->engine = "InnoDB";
 
-                    $table->string('userId', 36);
+                    $table->string('user_id', 36);
                     $table->bigInteger('point');
-                    $table->timestamp('createdAt')->index();
-                    $table->timestamp('updatedAt')->index();
-                    $table->primary('userId');
+                    $table->timestamp('created_at')->index();
+                    $table->timestamp('updated_at')->index();
+                    $table->primary('user_id');
                 }
             );
         }
@@ -278,13 +278,13 @@ class Plugin extends AbstractPlugin
                     $table->engine = "InnoDB";
 
                     $table->increments('id');
-                    $table->string('userId', 36);
+                    $table->string('user_id', 36);
                     $table->string('action', 200);
                     $table->bigInteger('point');
                     $table->string('content');
-                    $table->timestamp('createdAt')->index();
-                    $table->timestamp('updatedAt');
-                    $table->index('userId');
+                    $table->timestamp('created_at')->index();
+                    $table->timestamp('updated_at');
+                    $table->index('user_id');
                 }
             );
         }

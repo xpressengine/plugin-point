@@ -122,7 +122,7 @@ class Handler
     protected function logging($action, $userId, $point, $content = [])
     {
         $log = new Log();
-        $log->userId = $userId;
+        $log->user_id = $userId;
         $log->action = $action;
         $log->content = $content;
         $log->point = $point;
@@ -164,7 +164,7 @@ class Handler
     {
         $pointObj = Point::find($userId);
         if ($pointObj === null) {
-            $pointObj = new Point(['userId' => $userId, 'point' => 0]);
+            $pointObj = new Point(['user_id' => $userId, 'point' => 0]);
         }
         return $pointObj;
     }

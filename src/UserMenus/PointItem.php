@@ -26,7 +26,7 @@ class PointItem extends UserToggleMenu
 
     public function getAction()
     {
-        return route('point::setting.show', ['userId' => $this->identifier]);
+        return route('point::setting.show', ['user_id' => $this->identifier]);
     }
 
     public function getScript()

@@ -51,9 +51,9 @@ class PointSection extends Section
         )->load();
 
         app('xe.frontend')->html('point.section.form')->content("<script>
-            window.showMessage = function(data) {
-                XE.toast(data.type, data.message);
-            }
+        window.showMessage = function(data) {
+            window.XE.toast(data.type, data.message);
+        }
         </script>")->load();
 
         $handler = app('point::handler');

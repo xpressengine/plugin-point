@@ -1,6 +1,6 @@
 {
   "name": "xpressengine-plugin/point",
-  "description": "Point system for user",
+  "description": "회원들에게 포인트 기능을 제공할 수 있습니다.",
   "keywords": [
     "xpressengine",
     "plugin",
@@ -17,7 +17,7 @@
     {
       "name": "XE Developers",
       "email": "developers@xpressengine.com",
-      "homepage": "http://xpressengine.io",
+      "homepage": "https://store.xehub.io/plugins/point",
       "role": "Developer"
     }
   ],

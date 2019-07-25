@@ -1,14 +1,14 @@
 <?php
 /**
- * User
+ * User.php
  *
- * PHP version 5
+ * PHP version 7
  *
  * @category    Point
  * @package     Xpressengine\Plugins\Point
- * @author      XE Developers <developers@xpressengine.com>
- * @copyright   2015 Copyright (C) NAVER Corp. <http://www.navercorp.com>
- * @license     http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html LGPL-2.1
+ * @author      XE Team (developers) <developers@xpressengine.com>
+ * @copyright   2019 Copyright XEHub Corp. <https://www.xehub.io>
+ * @license     http://www.gnu.org/licenses/lgpl-3.0-standalone.html LGPL
  * @link        https://xpressengine.io
  */
 
@@ -17,11 +17,13 @@ namespace Xpressengine\Plugins\Point\Models;
 use Xpressengine\User\Models\User as OriginUser;
 
 /**
+ * Class User
+ *
  * @category    Point
- * @package     Xpressengine\Plugins\Point
- * @author      XE Developers <developers@xpressengine.com>
- * @copyright   2015 Copyright (C) NAVER Corp. <http://www.navercorp.com>
- * @license     http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html LGPL-2.1
+ * @package     Xpressengine\Plugins\Point\Controllers
+ * @author      XE Team (developers) <developers@xpressengine.com>
+ * @copyright   2019 Copyright XEHub Corp. <https://www.xehub.io>
+ * @license     http://www.gnu.org/licenses/lgpl-3.0-standalone.html LGPL
  * @link        https://xpressengine.io
  */
 class User extends OriginUser

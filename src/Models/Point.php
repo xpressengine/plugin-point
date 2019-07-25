@@ -1,27 +1,31 @@
 <?php
 /**
- *  This file is part of the Xpressengine package.
+ * Point.php
  *
- * PHP version 5
+ * PHP version 7
  *
  * @category    Point
  * @package     Xpressengine\Plugins\Point
- * @author      XE Team (khongchi) <khongchi@xpressengine.com>
- * @copyright   2000-2014 Copyright (C) NAVER <http://www.navercorp.com>
+ * @author      XE Team (developers) <developers@xpressengine.com>
+ * @copyright   2019 Copyright XEHub Corp. <https://www.xehub.io>
  * @license     http://www.gnu.org/licenses/lgpl-3.0-standalone.html LGPL
- * @link        http://www.xpressengine.com
+ * @link        https://xpressengine.io
  */
+
 namespace Xpressengine\Plugins\Point\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 /**
-     * @category    Point
-     * @package     Xpressengine\Plugins\Point
-     * @author      XE Team (khongchi) <khongchi@xpressengine.com>
-     * @license     http://www.gnu.org/licenses/lgpl-3.0-standalone.html LGPL
-     * @link        http://www.xpressengine.com
-     */
+ * Class Point
+ *
+ * @category    Point
+ * @package     Xpressengine\Plugins\Point\Controllers
+ * @author      XE Team (developers) <developers@xpressengine.com>
+ * @copyright   2019 Copyright XEHub Corp. <https://www.xehub.io>
+ * @license     http://www.gnu.org/licenses/lgpl-3.0-standalone.html LGPL
+ * @link        https://xpressengine.io
+ */
 class Point extends Model
 {
     protected $table = 'point';

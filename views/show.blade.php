@@ -1,5 +1,5 @@
 @section('page_title')
-    <h2><a href="{{ route('settings.user.index') }}"><i class="xi-arrow-left"></i></a>{{ $user->getDisplayName() }}님의 포인트 내역</h2>
+    <h2>{{xe_trans('point::logForUser', ['user_name' => $user->getDisplayName()])}}</h2>
 @stop
 
 <div class="row">
@@ -9,7 +9,7 @@
                     <div class="panel-heading">
                         <div class="pull-left">
                             <h3 class="panel-title">
-                                포인트 적립/사용 내역
+                                {{xe_trans('point::pointEarnUseLog')}}
                             </h3>
                         </div>
                         <div class="pull-right">
@@ -22,16 +22,16 @@
                         <table class="table">
                             <thead>
                             <tr>
-                                <th scope="col">일시</th>
-                                <th scope="col">구분</th>
-                                <th scope="col">포인트</th>
+                                <th scope="col">{{xe_trans('xe::date')}}</th>
+                                <th scope="col">{{xe_trans('xe::type')}}</th>
+                                <th scope="col">{{xe_trans('point::point')}}</th>
                             </tr>
                             </thead>
                             <tbody>
                             @foreach($logs as $log)
                                 <tr>
                                     <td>{{ $log->created_at->format('Y.m.d H:i:s') }}</td>
-                                    <td>{{ $log->title }}</td>
+                                    <td>{{ xe_trans($log->title) }}</td>
                                     <td>{{ $log->point }}</td>
                                 </tr>
                             @endforeach

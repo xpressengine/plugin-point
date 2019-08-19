@@ -66,11 +66,9 @@ class SettingController extends Origin
 
         $actions = [
             'user_login' => [
-                'title' => '로그인',
                 'default' => 10,
             ],
             'user_register' => [
-                'title' => '가입',
                 'default' => 50,
             ],
         ];
@@ -92,9 +90,38 @@ class SettingController extends Origin
         ];
         $section['board'] = new PointSection($actions);
 
-
-
         return XePresenter::make($this->plugin->view('views.index'), compact('plugin', 'section'));
+    }
+
+    public function logs(Request $request)
+    {
+        $query = Log::query();
+
+        //기간 검색
+        if ($startDate = $request->get('start_date')) {
+            $query = $query->where('created_at', '>=', $startDate . ' 00:00:00');
+        }
+        if ($endDate = $request->get('end_date')) {
+            $query = $query->where('created_at', '<=', $endDate . ' 23:59:59');
+        }
+
+        if ($userEmail = $request->get('user_email')) {
+            $writers = \XeUser::where(
+                'email',
+                'like',
+                '%' . $userEmail . '%'
+            )->selectRaw('id')->get();
+
+            $writerIds = [];
+            foreach ($writers as $writer) {
+                $writerIds[] = $writer['id'];
+            }
+            $query = $query->whereIn('user_id', $writerIds);
+        }
+
+        $logs = $query->orderBy('created_at', 'desc')->paginate(20);
+
+        return XePresenter::make($this->plugin->view('views.logs'), compact('logs'));
     }
 
     public function show(Request $request, $userId)

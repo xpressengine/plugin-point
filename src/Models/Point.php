@@ -42,7 +42,7 @@ class Point extends Model
 
     public function user()
     {
-        $this->belongsTo(User::class, 'user_id');
+        return $this->belongsTo('Xpressengine\User\Models\User', 'user_id');
     }
 
     

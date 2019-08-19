@@ -5,7 +5,7 @@
             @foreach($actions as $action)
                 <li>
                     <label>
-                        {{ $action['title'] }}
+                        {{ xe_trans($action['title']) }}
                         {{ uio('formText', ['name'=> $action['name'], 'value'=>$action['point'], 'type'=>'number']) }}
                     </label>
                 </li>

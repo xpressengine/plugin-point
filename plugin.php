@@ -216,6 +216,31 @@ class Plugin extends AbstractPlugin
 
     protected function route()
     {
+        // settings menu 등록
+        $menus = [
+            'user.point' => [
+                'title' => 'point::point',
+                'display' => true,
+                'description' => '',
+                'ordering' => 1000
+            ],
+            'user.point.log' => [
+                'title' => 'point::pointEarnUseLog',
+                'display' => true,
+                'description' => '',
+                'ordering' => 10001
+            ],
+            'user.point.config' => [
+                'title' => 'point::pointSetup',
+                'display' => true,
+                'description' => '',
+                'ordering' => 10003
+            ],
+        ];
+        foreach ($menus as $id => $menu) {
+            app('xe.register')->push('settings/menu', $id, $menu);
+        }
+
         Route::settings(
             $this->getId(),
             function () {
@@ -227,15 +252,19 @@ class Plugin extends AbstractPlugin
                             [
                                 'as' => 'point::setting.index',
                                 'uses' => 'SettingController@index',
+                                'settings_menu' => 'user.point.config',
                             ]
                         );
+
                         Route::get(
-                            '{userId}',
+                            'logs',
                             [
-                                'as' => 'point::setting.show',
-                                'uses' => 'SettingController@show',
+                                'as' => 'point::setting.logs',
+                                'uses' => 'SettingController@logs',
+                                'settings_menu' => 'user.point.log',
                             ]
                         );
+
 
                         Route::put(
                             'section',
@@ -244,6 +273,15 @@ class Plugin extends AbstractPlugin
                                 'uses' => 'SettingController@updateSection',
                             ]
                         );
+
+                        Route::get(
+                            '{userId}',
+                            [
+                                'as' => 'point::setting.show',
+                                'uses' => 'SettingController@show',
+                            ]
+                        );
+
                     }
                 );
             }
@@ -262,15 +300,15 @@ class Plugin extends AbstractPlugin
         app('xe.config')->set('point', []);
 
         // user
-        app('point::handler')->storeActionInfo('user_login', ['point'=> 10, 'title'=>'로그인']);
-        app('point::handler')->storeActionInfo('user_register', ['point'=> 50, 'title'=>'가입']);
+        app('point::handler')->storeActionInfo('user_login', ['point'=> 10, 'title'=>'xe::login']);
+        app('point::handler')->storeActionInfo('user_register', ['point'=> 50, 'title'=>'xe::signUp']);
 
         // board
-        app('point::handler')->storeActionInfo('board', ['point'=> 10, 'title'=>'게시판']);
-        app('point::handler')->storeActionInfo('board.write-document', ['title'=>'게시판 글작성']);
-        app('point::handler')->storeActionInfo('board.delete-document', ['title'=>'게시판 글삭제']);
-        app('point::handler')->storeActionInfo('board.write-comment', ['title'=>'게시판 댓글작성']);
-        app('point::handler')->storeActionInfo('board.delete-comment', ['title'=>'게시판 댓글삭제']);
+        app('point::handler')->storeActionInfo('board', ['point'=> 10, 'title'=>'board::board']);
+        app('point::handler')->storeActionInfo('board.write-document', ['title'=>'point::articleStore']);
+        app('point::handler')->storeActionInfo('board.delete-document', ['title'=>'point::articleDestroy']);
+        app('point::handler')->storeActionInfo('board.write-comment', ['title'=>'point::commentStore']);
+        app('point::handler')->storeActionInfo('board.delete-comment', ['title'=>'point::commentDestroy']);
     }
 
     /**
@@ -318,6 +356,10 @@ class Plugin extends AbstractPlugin
         if (array_key_exists(UserMenus\PointItem::getId(), $activates) == false) {
             $activates[UserMenus\PointItem::getId()] = UserMenus\PointItem::class;
         }
+
+        /** @var \Xpressengine\Translation\Translator $trans */
+        $trans = app('xe.translator');
+        $trans->putFromLangDataSource('point', base_path('plugins/point/langs/lang.php'));
     }
 
     /**

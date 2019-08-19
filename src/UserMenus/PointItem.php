@@ -32,7 +32,7 @@ class PointItem extends UserToggleMenu
     {
         $point = app('point::handler')->getPoint($this->identifier);
 
-        return "포인트({$point}) 내역";
+        return xe_trans('point::userPointLogButton', ['point' =>$point]);
     }
 
     public function getType()

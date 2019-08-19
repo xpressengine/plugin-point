@@ -24,6 +24,7 @@ use Xpressengine\Plugins\Board\Models\Board;
 use Xpressengine\Plugins\Board\Modules\BoardModule;
 use Xpressengine\Plugins\Comment\Models\Comment;
 use Xpressengine\User\UserInterface;
+use XeToggleMenu;
 
 /**
  * Class Plugin
@@ -310,6 +311,12 @@ class Plugin extends AbstractPlugin
                     $table->index('user_id');
                 }
             );
+        }
+
+        $toggleMenuType = 'user';
+        $activates = XeToggleMenu::getActivated($toggleMenuType);
+        if (array_key_exists(UserMenus\PointItem::getId(), $activates) == false) {
+            $activates[UserMenus\PointItem::getId()] = UserMenus\PointItem::class;
         }
     }
 

@@ -19,6 +19,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Route;
 use Schema;
 use Xpressengine\Config\ConfigEntity;
+use Xpressengine\Menu\Models\MenuItem;
 use Xpressengine\Plugin\AbstractPlugin;
 use Xpressengine\Plugins\Board\Models\Board;
 use Xpressengine\Plugins\Board\Modules\BoardModule;
@@ -78,10 +79,12 @@ class Plugin extends AbstractPlugin
             'XeUser@create',
             'point@create',
             function ($target, $data, $token = null) {
-
                 $user = $target($data, $token);
 
-                app('point::handler')->executeAction('user_register', $user);
+                // start point
+                $pointHandler = app('point::handler');
+                $action = 'user_register';
+                $pointHandler->executeAction($action, $user);
 
                 return $user;
             }
@@ -95,52 +98,89 @@ class Plugin extends AbstractPlugin
             if ($user->loginAt->isSameDay(Carbon::now())) {
                 return $user;
             }
-            app('point::handler')->executeAction('user_login', $user);
+
+            // start point
+            $pointHandler = app('point::handler');
+            $action = 'user_login';
+            if ($pointHandler->checkAction($action, $user) == false) {
+                $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                    [], 500
+                );
+                $exception->setMessage('[포인트 부족] login 할 수 없습니다.');
+                throw $exception;
+            }
+
+            $pointHandler->executeAction($action, $user);
         });
 
         // board - write document
         intercept(
             '\Xpressengine\Plugins\Board\Handler@add',
             'point.board-write-document',
-            function ($target, array $args, UserInterface $user, ConfigEntity $config) {
+            function ($func, array $args, UserInterface $user, ConfigEntity $config) {
+                \XeDB::beginTransaction();
+                /** @var Board $board */
+                $board = $func($args, $user, $config);
 
-                $skip = false;
+                $pointHandler = app('point::handler');
 
-                if ($user instanceof Guest) {
-                    $skip = true;
+                $instanceId = $args['instance_id'];
+
+                $user = \Auth::user();
+                $action = 'board.write-document.'.$instanceId;
+                if ($pointHandler->checkAction($action, $user) == false) {
+                    $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                        [], 500
+                    );
+                    $exception->setMessage('[포인트 부족] 글을 등록할 수 없습니다.');
+                    throw $exception;
                 }
 
-                /** @var Board $boardDoc */
-                $boardDoc = $target($args, $user, $config);
+                $pointHandler->executeAction(
+                    $action,
+                    $user,
+                    ['instance_id' => $args['instance_id'], 'type' => 'create']
+                );
 
-                if ($skip === false) {
-                    app('point::handler')->executeAction(
-                        'board.write-document.'.$boardDoc->getInstanceId(),
+                // check file count, upload file point
+                $fileCount = count($args['_files']);
+                if ($fileCount > 0) {
+                    $action = 'board.upload-file.'.$instanceId;
+                    if ($pointHandler->checkAction($action, $user) == false) {
+                        $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                            [], 500
+                        );
+                        $exception->setMessage('[포인트 부족] 업로드할 수 없습니다.');
+                        throw $exception;
+                    }
+
+                    $pointHandler->executeAction(
+                        $action,
                         $user,
-                        ['document_id' => $boardDoc->id, 'type' => 'create']
+                        ['instance_id' => $args['instance_id'], 'file_count' => $fileCount]
                     );
                 }
 
-                return $boardDoc;
+                \XeDB::commit();
+                return $board;
             }
         );
 
-        // board - restore document
+        // board - restore document, @deprecated
         intercept(
             '\Xpressengine\Plugins\Board\Handler@restore',
             'point.board-restore-document',
-            function ($target, Board $boardDoc, ConfigEntity $config) {
-
+            function ($func, Board $board, ConfigEntity $config) {
+                \XeDB::beginTransaction();
                 /** @var Board $boardDoc */
-                $target($boardDoc, $config);
+                $func($board, $config);
 
                 app('point::handler')->executeAction(
-                    'board.write-document.'.$boardDoc->getInstanceId(),
-                    $boardDoc->getUserId(),
-                    ['document_id' => $boardDoc->id, 'type' => 'restore']
+                    'board.write-document.'.$board->getInstanceId(),
+                    $board->getUserId(),
+                    ['document_id' => $board->id, 'type' => 'restore']
                 );
-
-                return $boardDoc;
+                \XeDB::commit();
             }
         );
 
@@ -148,16 +188,116 @@ class Plugin extends AbstractPlugin
         intercept(
             ['\Xpressengine\Plugins\Board\Handler@remove', '\Xpressengine\Plugins\Board\Handler@trash'],
             'point.board-delete-document',
-            function ($target, Board $board, ConfigEntity $config) {
-                $target($board, $config);
+            function ($func, Board $board, ConfigEntity $config) {
+                \XeDB::beginTransaction();
+                $pointHandler = app('point::handler');
 
-                $type = $target->getTargetMethodName();
+                if($board->type != 'module/board@board') {
+                    return;
+                }
+                $instanceId = $board->instance_id;
 
-                app('point::handler')->executeAction(
-                    'board.delete-document.'.$board->getInstanceId(),
-                    $board->getUserId(),
-                    ['document_id' => $board->id, 'type' => $type]
+                $user = \Auth::user();
+                $action = 'board.delete-document.'.$instanceId;
+                if ($pointHandler->checkAction($action, $user) == false) {
+                    $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                        [], 500
+                    );
+                    $exception->setMessage('[포인트 부족] 글을 삭제할 수 없습니다.');
+                    throw $exception;
+                }
+
+                $pointHandler->executeAction(
+                    $action,
+                    $user,
+                    ['document_id' => $board->id, 'type' => 'remove']
                 );
+
+                $func($board, $config);
+                \XeDB::commit();
+            }
+        );
+
+        // board - read document
+        intercept(
+            '\Xpressengine\Plugins\Board\Handler@incrementReadCount',
+            'point.read-document',
+            function ($func, Board $board, UserInterface $user) {
+                \XeDB::beginTransaction();
+                $currentReadCount = $board->read_count;
+                $func($board, $user);
+
+                // 조회수 변경되지 않음, 이미 읽은 글
+                if ($currentReadCount == $board->read_count) {
+                    return;
+                }
+
+                $pointHandler = app('point::handler');
+
+                if($board->type != 'module/board@board') {
+                    return;
+                }
+                $instanceId = $board->instance_id;
+
+                // check url
+                $parts = explode('@', \Route::getCurrentRoute()->getActionName());
+                $parts = explode('\\', array_shift($parts));
+                if (array_pop($parts) == 'BoardModuleController') {
+                    $user = \Auth::user();
+                    $action = 'board.read-document.'.$instanceId;
+                    if ($pointHandler->checkAction($action, $user) == false) {
+                        $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                            [], 500
+                        );
+                        $exception->setMessage('[포인트 부족] 글을 조회할 수 없습니다.');
+                        throw $exception;
+                    }
+
+                    $pointHandler->executeAction(
+                        $action,
+                        $user,
+                        ['document_id' => $board->id, 'type' => 'read']
+                    );
+                }
+
+                \XeDB::commit();
+            }
+        );
+
+        // board - vote 추천, 비추천
+        intercept(
+            '\Xpressengine\Plugins\Board\Handler@incrementVoteCount',
+            'point.vote-increment-document',
+            function ($func, Board $board, UserInterface $user, $option, $point) {
+                \XeDB::beginTransaction();
+                $func($board, $user, $option, $point);
+
+                $pointHandler = app('point::handler');
+
+                if($board->type != 'module/board@board') {
+                    return;
+                }
+                $instanceId = $board->instance_id;
+
+                // check url
+                $parts = explode('@', \Route::getCurrentRoute()->getActionName());
+                $parts = explode('\\', array_shift($parts));
+                if (array_pop($parts) == 'BoardModuleController') {
+
+                    if ($option == 'assent') {
+                        $action = 'board.receive-assent-document.'.$instanceId;
+                    } elseif ($option == 'dissent') {
+                        $action = 'board.receive-dissent-document.'.$instanceId;
+                    }
+
+                    $pointHandler->executeAction(
+                        $action,
+                        $board->user_id,
+                        ['document_id' => $board->id]
+                    );
+                }
+
+                \XeDB::commit();
             }
         );
 
@@ -166,25 +306,37 @@ class Plugin extends AbstractPlugin
             ['Xpressengine\Plugins\Comment\Handler@create', 'Xpressengine\Plugins\Comment\Handler@restore'],
             'point.write-comment',
             function ($target, $inputs, $user = null) {
+                \XeDB::beginTransaction();
+
                 /** @var Comment $comment */
                 $comment = $target($inputs, $user);
                 $boardDoc = Board::find($comment->target->targetId);
 
+                $pointHandler = app('point::handler');
+
                 if ($boardDoc == null) {
                     return $comment;
-                }
-                if ($boardDoc->type != BoardModule::getId()) {
+                } elseif($boardDoc->type != 'module/board@board') {
                     return $comment;
                 }
+                $instanceId = $boardDoc->instance_id;
 
-                $type = $target->getTargetMethodName();
+                $user = \Auth::user();
+                $action = 'board.write-comment.'.$instanceId;
+                if ($pointHandler->checkAction($action, $user) == false) {
+                    $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                        [], 500
+                    );
+                    $exception->setMessage('[포인트 부족] 댓글을 등록할 수 없습니다.');
+                    throw $exception;
+                }
 
-                app('point::handler')->executeAction(
-                    'board.write-comment.'.$boardDoc->getInstanceId(),
-                    $comment->getAuthor(),
-                    ['document_id' => $boardDoc->id, 'comment_id' => $comment->id, 'type' => $type]
+                $pointHandler->executeAction(
+                    $action,
+                    $user,
+                    ['document_id' => $boardDoc->id, 'comment_id' => $comment->id, 'type' => 'create']
                 );
-
+                \XeDB::commit();
                 return $comment;
             }
         );
@@ -194,21 +346,119 @@ class Plugin extends AbstractPlugin
             ['Xpressengine\Plugins\Comment\Handler@trash'/*, 'Xpressengine\Plugins\Comment\Handler@remove'*/],
             'point.delete-comment',
             function ($func, Comment $comment) {
+                \XeDB::beginTransaction();
 
                 $result = $func($comment);
 
-                if ($boardDoc = Board::find($comment->target->targetId)) {
-                    if ($boardDoc->type != BoardModule::getId()) {
-                        return $result;
+                $board = Board::find($comment->target->targetId);
+
+                $pointHandler = app('point::handler');
+
+                if ($board != null && $board->type == 'module/board@board') {
+                    $instanceId = $board->instance_id;
+
+                    $user = \Auth::user();
+                    $action = 'board.delete-comment.'.$instanceId;
+                    if ($pointHandler->checkAction($action, $user) == false) {
+                        $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                            [], 500
+                        );
+                        $exception->setMessage('[포인트 부족] 댓글을 삭제할 수 없습니다.');
+                        throw $exception;
                     }
 
-                    app('point::handler')->executeAction(
-                        'board.delete-comment.'.$boardDoc->getInstanceId(),
-                        $comment->getAuthor(),
-                        ['document_id' => $boardDoc->id, 'comment_id' => $comment->id]
+                    $pointHandler->executeAction(
+                        $action,
+                        $user,
+                        ['document_id' => $board->id, 'comment_id' => $comment->id]
                     );
                 }
 
+                \XeDB::commit();
+
+                return $result;
+            }
+        );
+
+        // board - upload file when upload from editor @deprecated
+        intercept(
+            ['Xpressengine\Storage\Storage@upload'],
+            'point.board-upload-file-editor',
+            function ($func, $uploadedFile, $path) {
+                \XeDB::beginTransaction();
+
+                $result = $func($uploadedFile, $path);
+                // start point
+                $pointHandler = app('point::handler');
+
+                // get instance id
+                $instanceId = request()->segment(3);
+                $menuItem = MenuItem::where('id', $instanceId)->first();
+
+                if ($menuItem != null && $menuItem->type == 'board@board') {
+                    $user = \Auth::user();
+                    $action = 'board.upload-file.'.$instanceId;
+                    if ($pointHandler->checkAction($action, $user) == false) {
+                        $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                            [], 500
+                        );
+                        $exception->setMessage('[포인트 부족] 업로드 할 수 없습니다.');
+                        throw $exception;
+                    }
+
+                    $pointHandler->executeAction(
+                        $action,
+                        $user,
+                        ['instance_id' => $instanceId]
+                    );
+                }
+
+                \XeDB::commit();
+                return $result;
+            }
+        );
+
+        // board - download file
+        intercept(
+            ['Xpressengine\Storage\Storage@download'],
+            'point.board-download-file',
+            function ($func, $file) {
+                \XeDB::beginTransaction();
+
+                $result = $func($file);
+
+                // start point
+                $pointHandler = app('point::handler');
+
+                // get instance id
+                $instanceId = request()->segment(3);
+                $menuItem = MenuItem::where('id', $instanceId)->first();
+
+                $isImage = false;
+                if ($file != null && explode('/', $file->mime)[0] == 'image') {
+                    $isImage = true;
+                }
+
+                // 이미지는 제외
+                if ($menuItem != null && $menuItem->type == 'board@board' && $isImage == false) {
+                    $user = \Auth::user();
+                    $action = 'board.download-file.'.$instanceId;
+                    if ($pointHandler->checkAction($action, $user) == false) {
+                        $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
+                            [], 500
+                        );
+                        $exception->setMessage('[포인트 부족] 다운로드 할 수 없습니다.');
+                        throw $exception;
+                    }
+
+                    $pointHandler->executeAction(
+                        $action,
+                        $user,
+                        ['instance_id' => $instanceId, 'file_id' => $file->id, 'mime' => $file->mime,]
+                    );
+                }
+
+                \XeDB::commit();
                 return $result;
             }
         );
@@ -255,9 +505,12 @@ class Plugin extends AbstractPlugin
                                 'settings_menu' => 'user.point.config',
                             ]
                         );
+                        Route::get('/instance', ['as' => 'point::setting.instance', 'uses' => 'SettingController@instance',]);
+                        Route::get('/user', ['as' => 'point::setting.user', 'uses' => 'SettingController@user',]);
+                        Route::post('/user/point/update', ['as' => 'point::setting.user.point.update', 'uses' => 'SettingController@updateUserPoint',]);
 
                         Route::get(
-                            'logs',
+                            '/logs',
                             [
                                 'as' => 'point::setting.logs',
                                 'uses' => 'SettingController@logs',
@@ -265,22 +518,13 @@ class Plugin extends AbstractPlugin
                             ]
                         );
 
+                        Route::put('/config/update', ['as' => 'point::config.update', 'uses' => 'SettingController@updateConfig',]);
+                        Route::put('/section/update', ['as' => 'point::section.update', 'uses' => 'SettingController@updateSection',]);
+                        Route::put('/group/update', ['as' => 'point::group.update', 'uses' => 'SettingController@updateGroup',]);
+                        Route::put('/level_point/update', ['as' => 'point::level_point.update', 'uses' => 'SettingController@updateLevelPoint',]);
+                        Route::post('/user_point/update', ['as' => 'point::user_point.update', 'uses' => 'SettingController@updateUserPoint',]);
 
-                        Route::put(
-                            'section',
-                            [
-                                'as' => 'point::section.update',
-                                'uses' => 'SettingController@updateSection',
-                            ]
-                        );
-
-                        Route::get(
-                            '{userId}',
-                            [
-                                'as' => 'point::setting.show',
-                                'uses' => 'SettingController@show',
-                            ]
-                        );
+                        Route::get('/{userId}', ['as' => 'point::setting.show', 'uses' => 'SettingController@show',]);
 
                     }
                 );
@@ -300,15 +544,24 @@ class Plugin extends AbstractPlugin
         app('xe.config')->set('point', []);
 
         // user
-        app('point::handler')->storeActionInfo('user_login', ['point'=> 10, 'title'=>'xe::login']);
-        app('point::handler')->storeActionInfo('user_register', ['point'=> 50, 'title'=>'xe::signUp']);
+        app('point::handler')->storeActionInfo('user_login', ['point'=> 0, 'title'=>'xe::login']);
+        app('point::handler')->storeActionInfo('user_register', ['point'=> 0, 'title'=>'xe::signUp']);
 
         // board
-        app('point::handler')->storeActionInfo('board', ['point'=> 10, 'title'=>'board::board']);
+        app('point::handler')->storeActionInfo('board', ['point'=> 0, 'title'=>'board::board']);
         app('point::handler')->storeActionInfo('board.write-document', ['title'=>'point::articleStore']);
         app('point::handler')->storeActionInfo('board.delete-document', ['title'=>'point::articleDestroy']);
         app('point::handler')->storeActionInfo('board.write-comment', ['title'=>'point::commentStore']);
         app('point::handler')->storeActionInfo('board.delete-comment', ['title'=>'point::commentDestroy']);
+
+        // version 1.0.2
+        app('xe.config')->set('point.group', []);
+        app('xe.config')->set('point.level_point', []);
+        app('point::handler')->storeActionInfo('board.upload-file', ['title'=>'point::uploadFile']);
+        app('point::handler')->storeActionInfo('board.download-file', ['title'=>'point::downloadFile']);
+        app('point::handler')->storeActionInfo('board.read-document', ['title'=>'point::readDocument']);
+        app('point::handler')->storeActionInfo('board.receive-assent-document', ['title'=>'point::receiveAssentDocument']);
+        app('point::handler')->storeActionInfo('board.receive-dissent-document', ['title'=>'point::receiveDissentDocument']);
     }
 
     /**
@@ -326,6 +579,7 @@ class Plugin extends AbstractPlugin
 
                     $table->string('user_id', 36);
                     $table->bigInteger('point');
+                    $table->bigInteger('level')->default(0);
                     $table->timestamp('created_at')->index();
                     $table->timestamp('updated_at')->index();
                     $table->primary('user_id');
@@ -387,6 +641,9 @@ class Plugin extends AbstractPlugin
     public function update()
     {
         // implement code
+        if ($this->hasLevelFunction()) {
+            $this->updateLevelFunction();
+        }
     }
 
     /**
@@ -398,7 +655,40 @@ class Plugin extends AbstractPlugin
     public function checkUpdated()
     {
         // implement code
+        if ($this->hasLevelFunction()) {
+            return false;
+        }
 
-        return parent::checkUpdated();
+        parent::checkUpdated();
+    }
+
+    /**
+     * 1.0.2 에서 레벨 기능 추가
+     *
+     * @return bool
+     */
+    protected function hasLevelFunction()
+    {
+        $installedVersion = app('xe.plugin')->getPlugin('board')->getInstalledVersion();
+        if (version_compare($installedVersion, '1.0.2', '<')) {
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function updateLevelFunction()
+    {
+        Schema::table('point', function (Blueprint $table) {
+            $table->bigInteger('level')->default(0);
+        });
+
+        app('xe.config')->set('point.group', []);
+        app('xe.config')->set('point.level_point', []);
+        app('point::handler')->storeActionInfo('board.upload-file', ['point'=> 0, 'title'=>'point::uploadFile']);
+        app('point::handler')->storeActionInfo('board.download-file', ['point'=> 0, 'title'=>'point::downloadFile']);
+        app('point::handler')->storeActionInfo('board.read-document', ['point'=> 0, 'title'=>'point::readDocument']);
+        app('point::handler')->storeActionInfo('board.receive-assent-document', ['point'=> 0, 'title'=>'point::receiveAssentDocument']);
+        app('point::handler')->storeActionInfo('board.receive-dissent-document', ['point'=> 0, 'title'=>'point::receiveDissentDocument']);
     }
 }

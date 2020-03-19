@@ -29,15 +29,20 @@ use Illuminate\Database\Eloquent\Model;
 class Point extends Model
 {
     protected $table = 'point';
+
     protected $primaryKey = 'user_id';
+
+    public $incrementing = false;
+
     public $timestamps = true;
 
     protected $casts = [
-        'point' => 'integer'
+        'point' => 'int',
+        'level' => 'int',
     ];
 
     protected $fillable = [
-        'user_id', 'point'
+        'user_id', 'point', 'level'
     ];
 
     public function user()

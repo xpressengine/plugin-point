@@ -6,8 +6,8 @@
                 <li>
                     <label>
                         {{ xe_trans($action['title']) }}
-                        {{ uio('formText', ['name'=> $action['name'], 'value'=>$action['point'], 'type'=>'number']) }}
                     </label>
+                    {{ uio('formText', ['name'=> $action['name'], 'value'=>$action['point'], 'type'=>'number']) }}
                 </li>
             @endforeach
         </ul>

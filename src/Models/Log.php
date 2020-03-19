@@ -49,7 +49,12 @@ class Log extends Model
         } else {
             $name = substr('point.'.$this->action, 0, strrpos('point.'.$this->action, '.'));
             if(array_has($actions, $name)) {
-                return array_get($actions, $name)['title'];
+                $title = array_get($actions, $name)['title'];
+                if ($title == null) {
+                    return $this->action;
+                } else {
+                    return $title;
+                }
             }
         }
         return $this->action;

@@ -24,6 +24,7 @@ use Xpressengine\Plugin\AbstractPlugin;
 use Xpressengine\Plugins\Board\Models\Board;
 use Xpressengine\Plugins\Board\Modules\BoardModule;
 use Xpressengine\Plugins\Comment\Models\Comment;
+use Xpressengine\Plugins\Point\Models\Point;
 use Xpressengine\User\UserInterface;
 use XeToggleMenu;
 
@@ -46,7 +47,8 @@ class Plugin extends AbstractPlugin
             $proxyClass = app('xe.interception')->proxy(Handler::class, 'Point');
             return new $proxyClass($this, app('xe.config'));
         });
-        app()->alias(Handler::class, 'point::handler');
+        app()->alias(Handler::class, 'point::handler'); // deprecated
+        app()->alias(Handler::class, 'xe.point.handler');
     }
 
     /**
@@ -57,6 +59,7 @@ class Plugin extends AbstractPlugin
     public function boot()
     {
         $this->registerEvent();
+        $this->registerUserMacro();
 
         $this->route();
     }
@@ -70,6 +73,28 @@ class Plugin extends AbstractPlugin
     public function getSettingsURI()
     {
         return route('point::setting.index');
+    }
+
+    protected function registerUserMacro()
+    {
+        \Xpressengine\User\Models\User::macro('point', function() {
+            return $this->belongsTo( Point::class, 'id', 'user_id');
+        });
+
+        \Xpressengine\User\Models\User::macro('point_level', function() {
+            $level = 0;
+            if ($this->point != null) {
+                $level = $this->point->level;
+            }
+            return $level;
+
+        });
+
+        \Xpressengine\User\Models\User::macro('point_level_icon', function() {
+            $handler = app('xe.point.handler');
+            return $handler->getIcon($this->point->level);
+
+        });
     }
 
     protected function registerEvent()

@@ -240,8 +240,13 @@ class Plugin extends AbstractPlugin
                 $instanceId = $board->instance_id;
 
                 // check url
-                $parts = explode('@', \Route::getCurrentRoute()->getActionName());
-                $parts = explode('\\', array_shift($parts));
+                $route = \Route::getCurrentRoute();
+                $parts = [];
+                if ($route != null) {
+                    $parts = explode('@', $route->getActionName());
+                    $parts = explode('\\', array_shift($parts));
+                }
+
                 if (array_pop($parts) == 'BoardModuleController') {
                     $user = \Auth::user();
                     $action = 'board.read-document.'.$instanceId;
@@ -280,8 +285,12 @@ class Plugin extends AbstractPlugin
                 $instanceId = $board->instance_id;
 
                 // check url
-                $parts = explode('@', \Route::getCurrentRoute()->getActionName());
-                $parts = explode('\\', array_shift($parts));
+                $route = \Route::getCurrentRoute();
+                $parts = [];
+                if ($route != null) {
+                    $parts = explode('@', $route->getActionName());
+                    $parts = explode('\\', array_shift($parts));
+                }
                 if (array_pop($parts) == 'BoardModuleController') {
 
                     if ($option == 'assent') {
@@ -310,7 +319,7 @@ class Plugin extends AbstractPlugin
 
                 /** @var Comment $comment */
                 $comment = $target($inputs, $user);
-                $boardDoc = Board::find($comment->target->targetId);
+                $boardDoc = Board::find($inputs['target_id']);
 
                 $pointHandler = app('point::handler');
 
@@ -341,22 +350,23 @@ class Plugin extends AbstractPlugin
             }
         );
 
-        // board - delete or trash comment
+        // board - trash comment, 코멘트에서 trash 하고 delete 함.. 중복 처리하기 때문에 remove 는 처리 안함
         intercept(
-            ['Xpressengine\Plugins\Comment\Handler@trash'/*, 'Xpressengine\Plugins\Comment\Handler@remove'*/],
-            'point.delete-comment',
+            'Xpressengine\Plugins\Comment\Handler@trash',
+            'point.trash-comment',
             function ($func, Comment $comment) {
                 \XeDB::beginTransaction();
 
+                $targetId = $comment->target->target_id;
+
                 $result = $func($comment);
 
-                $board = Board::find($comment->target->targetId);
+                $board = Board::find($targetId);
 
                 $pointHandler = app('point::handler');
 
                 if ($board != null && $board->type == 'module/board@board') {
                     $instanceId = $board->instance_id;
-
                     $user = \Auth::user();
                     $action = 'board.delete-comment.'.$instanceId;
                     if ($pointHandler->checkAction($action, $user) == false) {

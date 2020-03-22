@@ -181,7 +181,9 @@ class SettingController extends Origin
             $query = $query->whereIn('user_id', $writerIds);
         }
 
-        $userPoints = $query->orderBy('point', 'desc')->paginate(20);
+        $userPoints = $query->orderBy('point', 'desc')
+            ->paginate(20)
+            ->appends($request->except('page'));
 
         return XePresenter::make(
             $this->plugin->view('views.user'),
@@ -216,7 +218,9 @@ class SettingController extends Origin
             $query = $query->whereIn('user_id', $writerIds);
         }
 
-        $logs = $query->orderBy('created_at', 'desc')->paginate(20);
+        $logs = $query->orderBy('created_at', 'desc')
+            ->paginate(20)
+            ->appends($request->except('page'));
 
         return XePresenter::make(
             $this->plugin->view('views.logs'),

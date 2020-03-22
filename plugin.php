@@ -168,7 +168,11 @@ class Plugin extends AbstractPlugin
                 );
 
                 // check file count, upload file point
-                $fileCount = count($args['_files']);
+                $fileCount = 0;
+                if (isset($args['_files'])) {
+                    $fileCount = count($args['_files']);
+                }
+
                 if ($fileCount > 0) {
                     $action = 'board.upload-file.'.$instanceId;
                     if ($pointHandler->checkAction($action, $user) == false) {

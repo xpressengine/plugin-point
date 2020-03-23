@@ -92,7 +92,7 @@ class Plugin extends AbstractPlugin
 
         \Xpressengine\User\Models\User::macro('point_level_icon', function() {
             $handler = app('xe.point.handler');
-            return $handler->getIcon($this->point->level);
+            return $handler->getIcon($this->point_level);
 
         });
     }

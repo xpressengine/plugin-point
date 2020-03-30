@@ -60,6 +60,7 @@ class Plugin extends AbstractPlugin
     {
         $this->registerEvent();
         $this->registerUserMacro();
+        $this->registerDocumentMacro();
 
         $this->route();
     }
@@ -80,20 +81,68 @@ class Plugin extends AbstractPlugin
         \Xpressengine\User\Models\User::macro('point', function() {
             return $this->belongsTo( Point::class, 'id', 'user_id');
         });
-
         \Xpressengine\User\Models\User::macro('point_level', function() {
             $level = 0;
             if ($this->point != null) {
                 $level = $this->point->level;
             }
             return $level;
-
         });
-
         \Xpressengine\User\Models\User::macro('point_level_icon', function() {
             $handler = app('xe.point.handler');
             return $handler->getIcon($this->point_level);
+        });
+    }
 
+    protected function registerDocumentMacro()
+    {
+        // for document
+        \Xpressengine\Document\Models\Document::macro('point', function() {
+            return $this->belongsTo( Point::class, 'id', 'user_id');
+        });
+        \Xpressengine\Document\Models\Document::macro('point_level', function() {
+            $level = 0;
+            if ($this->point != null) {
+                $level = $this->point->level;
+            }
+            return $level;
+        });
+        \Xpressengine\Document\Models\Document::macro('point_level_icon', function() {
+            $handler = app('xe.point.handler');
+            return $handler->getIcon($this->point_level);
+        });
+
+        // for board
+        \Xpressengine\Plugins\Board\Models\Board::macro('point', function() {
+            return $this->belongsTo( Point::class, 'id', 'user_id');
+        });
+        \Xpressengine\Plugins\Board\Models\Board::macro('point_level', function() {
+            $level = 0;
+            if ($this->point != null) {
+                $level = $this->point->level;
+            }
+            return $level;
+        });
+        \Xpressengine\Plugins\Board\Models\Board::macro('point_level_icon', function() {
+            $handler = app('xe.point.handler');
+            return $handler->getIcon($this->point_level);
+
+        });
+
+        // for comment
+        \Xpressengine\Plugins\Comment\Models\Comment::macro('point', function() {
+            return $this->belongsTo( Point::class, 'id', 'user_id');
+        });
+        \Xpressengine\Plugins\Comment\Models\Comment::macro('point_level', function() {
+            $level = 0;
+            if ($this->point != null) {
+                $level = $this->point->level;
+            }
+            return $level;
+        });
+        \Xpressengine\Plugins\Comment\Models\Comment::macro('point_level_icon', function() {
+            $handler = app('xe.point.handler');
+            return $handler->getIcon($this->point_level);
         });
     }
 
@@ -680,7 +729,7 @@ class Plugin extends AbstractPlugin
     public function update()
     {
         // implement code
-        if ($this->hasLevelFunction()) {
+        if ($this->hasLevelFunction() == false) {
             $this->updateLevelFunction();
         }
     }
@@ -694,7 +743,7 @@ class Plugin extends AbstractPlugin
     public function checkUpdated()
     {
         // implement code
-        if ($this->hasLevelFunction()) {
+        if ($this->hasLevelFunction() == false) {
             return false;
         }
 

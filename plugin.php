@@ -742,7 +742,6 @@ class Plugin extends AbstractPlugin
      */
     public function checkUpdated()
     {
-        // implement code
         if ($this->hasLevelFunction() == false) {
             return false;
         }
@@ -757,8 +756,7 @@ class Plugin extends AbstractPlugin
      */
     protected function hasLevelFunction()
     {
-        $installedVersion = app('xe.plugin')->getPlugin('board')->getInstalledVersion();
-        if (version_compare($installedVersion, '1.0.2', '<')) {
+        if (!Schema::hasColumn('point', 'level')) {
             return false;
         }
 

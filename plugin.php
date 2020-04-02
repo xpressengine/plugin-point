@@ -388,7 +388,7 @@ class Plugin extends AbstractPlugin
             }
         );
 
-        // board - write comment
+        // comment - write comment
         intercept(
             ['Xpressengine\Plugins\Comment\Handler@create', 'Xpressengine\Plugins\Comment\Handler@restore'],
             'point.write-comment',
@@ -428,7 +428,7 @@ class Plugin extends AbstractPlugin
             }
         );
 
-        // board - trash comment, 코멘트에서 trash 하고 delete 함.. 중복 처리하기 때문에 remove 는 처리 안함
+        // comment - trash comment, 코멘트에서 trash 하고 delete 함.. 중복 처리하기 때문에 remove 는 처리 안함
         intercept(
             'Xpressengine\Plugins\Comment\Handler@trash',
             'point.trash-comment',
@@ -767,9 +767,11 @@ class Plugin extends AbstractPlugin
 
     protected function updateLevelFunction()
     {
-        Schema::table('point', function (Blueprint $table) {
-            $table->bigInteger('level')->default(0);
-        });
+        if (!Schema::hasColumn('point', 'level')) {
+            Schema::table('point', function (Blueprint $table) {
+                $table->bigInteger('level')->default(0);
+            });
+        }
 
         app('xe.config')->set('point.group', []);
         app('xe.config')->set('point.level_point', []);

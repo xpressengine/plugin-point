@@ -271,6 +271,7 @@ class Plugin extends AbstractPlugin
                 $pointHandler = app('point::handler');
 
                 if($board->type != 'module/board@board') {
+                    \XeDB::commit();
                     return;
                 }
                 $instanceId = $board->instance_id;
@@ -307,12 +308,14 @@ class Plugin extends AbstractPlugin
 
                 // 조회수 변경되지 않음, 이미 읽은 글
                 if ($currentReadCount == $board->read_count) {
+                    \XeDB::commit();
                     return;
                 }
 
                 $pointHandler = app('point::handler');
 
                 if($board->type != 'module/board@board') {
+                    \XeDB::commit();
                     return;
                 }
                 $instanceId = $board->instance_id;
@@ -358,6 +361,7 @@ class Plugin extends AbstractPlugin
                 $pointHandler = app('point::handler');
 
                 if($board->type != 'module/board@board') {
+                    \XeDB::commit();
                     return;
                 }
                 $instanceId = $board->instance_id;
@@ -402,8 +406,10 @@ class Plugin extends AbstractPlugin
                 $pointHandler = app('point::handler');
 
                 if ($boardDoc == null) {
+                    \XeDB::commit();
                     return $comment;
                 } elseif($boardDoc->type != 'module/board@board') {
+                    \XeDB::commit();
                     return $comment;
                 }
                 $instanceId = $boardDoc->instance_id;

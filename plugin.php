@@ -752,7 +752,7 @@ class Plugin extends AbstractPlugin
             return false;
         }
 
-        parent::checkUpdated();
+        return parent::checkUpdated();
     }
 
     /**

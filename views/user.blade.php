@@ -50,11 +50,17 @@
                                     </div>
 
                                     <div>
-                                        <div class="search-input-group">
-                                            <input type="text" name="user_email" class="form-control" aria-label="Text input with dropdown button" placeholder="{{xe_trans('xe::enterEmail')}}" value="{{Request::get('user_email')}}">
-                                            <button class="btn-link">
-                                                <i class="xi-search"></i><span class="sr-only">{{xe_trans('xe::search')}}</span>
-                                            </button>
+                                        <div>
+                                            <select name="search_option" class="form-control">
+                                                <option value="user_email" @if(Request::get('search_option')== 'user_email') selected="selected" @endif>{{xe_trans('xe::email')}}</option>
+                                                <option value="user_displayName" @if(Request::get('search_option')== 'user_displayName') selected="selected" @endif>{{xe_trans('xe::displayName')}}</option>
+                                            </select>
+                                            <div class="search-input-group">
+                                                <input type="text" name="search_val" class="form-control" aria-label="Text input with dropdown button" placeholder="{{ xe_trans('xe::enterKeyword') }}" value="{{Request::get('search_val')}}">
+                                                <button class="btn-link">
+                                                    <i class="xi-search"></i><span class="sr-only">{{xe_trans('xe::search')}}</span>
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 </form>

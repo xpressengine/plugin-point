@@ -168,16 +168,22 @@ class SettingController extends Origin
             $query = $query->where('created_at', '>=', $startDate . ' 00:00:00');
         }
 
-        if ($userEmail = $request->get('user_email')) {
-            $writers = \XeUser::where(
-                'email',
-                'like',
-                '%' . $userEmail . '%'
-            )->selectRaw('id')->get();
-
+        if ($searchOption = $request->get('search_option')) {
             $writerIds = [];
-            foreach ($writers as $writer) {
-                $writerIds[] = $writer['id'];
+
+            $searchVal = $request->get('search_val');
+            if ($searchOption === 'user_displayName') {
+                $writerIds = $userHandler->users()->where(
+                    'display_name',
+                    'like',
+                    '%' . $searchVal . '%'
+                )->pluck('id');
+            } else if ($searchOption === 'user_email') {
+                $writerIds = $userHandler->users()->where(
+                    'email',
+                    'like',
+                    '%' . $searchVal . '%'
+                )->pluck('id');
             }
             $query = $query->whereIn('user_id', $writerIds);
         }
@@ -192,7 +198,7 @@ class SettingController extends Origin
         );
     }
 
-    public function logs(Request $request)
+    public function logs(Request $request, UserHandler $userHandler)
     {
         $query = Log::query();
 
@@ -205,16 +211,22 @@ class SettingController extends Origin
             $query = $query->where('created_at', '>=', $startDate . ' 00:00:00');
         }
 
-        if ($userEmail = $request->get('user_email')) {
-            $writers = \XeUser::where(
-                'email',
-                'like',
-                '%' . $userEmail . '%'
-            )->selectRaw('id')->get();
-
+        if ($searchOption = $request->get('search_option')) {
             $writerIds = [];
-            foreach ($writers as $writer) {
-                $writerIds[] = $writer['id'];
+
+            $searchVal = $request->get('search_val');
+            if ($searchOption === 'user_displayName') {
+                $writerIds = $userHandler->users()->where(
+                    'display_name',
+                    'like',
+                    '%' . $searchVal . '%'
+                )->pluck('id');
+            } else if ($searchOption === 'user_email') {
+                $writerIds = $userHandler->users()->where(
+                    'email',
+                    'like',
+                    '%' . $searchVal . '%'
+                )->pluck('id');
             }
             $query = $query->whereIn('user_id', $writerIds);
         }

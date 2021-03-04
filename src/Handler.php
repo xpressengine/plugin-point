@@ -62,7 +62,6 @@ class Handler
     public function getConfig()
     {
         $config = $this->config->get('point');
-
         if ($config->get('function_use') != 'use') {
             $config->set('function_use', 'disuse');
         }
@@ -81,6 +80,25 @@ class Handler
         if ($config->get('disable_read_board') != 'use') {
             $config->set('disable_read_board', 'disuse');
         }
+
+        if (app('config')->get('point')['specific_group']) {
+            if ($config->get('specific_group_id') == null) {
+                $config->set('specific_group_id', '');
+            }
+        }
+
+        if (app('config')->get('point')['comment_limit_hour']) {
+            if ($config->get('comment_limit_hour') == null) {
+                $config->set('comment_limit_hour', 24);
+            }
+        }
+
+        if (app('config')->get('point')['comment_limit_count']) {
+            if ($config->get('comment_limit_count') == null) {
+                $config->set('comment_limit_count', 10);
+            }
+        }
+
         return $config;
     }
 
@@ -334,7 +352,6 @@ class Handler
     {
         if ($this->isUse()) {
             $score = $this->getActionPoint($action);
-
             if ($user instanceof UserInterface == false) {
                 $user = app('xe.user')->find($user);
             }
@@ -372,6 +389,7 @@ class Handler
         $currentLevel = $pointObj->level;
         $point = $pointObj->point + $point;
         $level = $this->getLevelByPoint($point);
+
 
         $pointObj->point = $point;
         $pointObj->level = $level;
@@ -455,5 +473,17 @@ class Handler
         if (in_array($groupId, $groups) == true) {
             $user->leaveGroups([$groupId]);
         }
+    }
+
+    public function getCommentLimitHourConfig()
+    {
+        $config = $this->config->get('point');
+        return $config->get('comment_limit_hour');
+    }
+
+    public function getCommentLimitCountConfig()
+    {
+        $config = $this->config->get('point');
+        return $config->get('comment_limit_count');
     }
 }

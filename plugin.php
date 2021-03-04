@@ -49,6 +49,10 @@ class Plugin extends AbstractPlugin
         });
         app()->alias(Handler::class, 'point::handler'); // deprecated
         app()->alias(Handler::class, 'xe.point.handler');
+
+        $key = static::getId();
+        $config = app('config')->get($key, []);
+        app('config')->set($key, array_merge(require __DIR__.'/config/config.php', $config));
     }
 
     /**
@@ -92,6 +96,15 @@ class Plugin extends AbstractPlugin
             $handler = app('xe.point.handler');
             return $handler->getIcon($this->point_level);
         });
+
+        if(app('config')->get('point')['specific_group']) {
+            \Xpressengine\User\Models\User::macro('specific', function (){
+                if($this->groups->pluck('id')->contains(app('xe.config')->get('point')->get('specific_group_id'))) {
+                    return true;
+                }
+                return false;
+            });
+        }
     }
 
     protected function registerDocumentMacro()
@@ -154,8 +167,12 @@ class Plugin extends AbstractPlugin
             'point@create',
             function ($target, $data, $token = null) {
                 $user = $target($data, $token);
+                if(app('config')->get('point')['specific_group']) {
+                    if ($user->specific !== true) {
+                        return $user;
+                    }
+                }
 
-                // start point
                 $pointHandler = app('point::handler');
                 $action = 'user_register';
                 $pointHandler->executeAction($action, $user);
@@ -171,6 +188,12 @@ class Plugin extends AbstractPlugin
             }
             if ($user->loginAt->isSameDay(Carbon::now())) {
                 return $user;
+            }
+
+            if(app('config')->get('point')['specific_group']) {
+                if ($user->specific !== true) {
+                    return $user;
+                }
             }
 
             // start point
@@ -201,6 +224,15 @@ class Plugin extends AbstractPlugin
                 $instanceId = $args['instance_id'];
 
                 $user = \Auth::user();
+
+                if(app('config')->get('point')['specific_group']) {
+                    if ($user->specific !== true) {
+                        \XeDB::commit();
+                        return $board;
+                    }
+                }
+
+
                 $action = 'board.write-document.'.$instanceId;
                 if ($pointHandler->checkAction($action, $user) == false) {
                     $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
@@ -253,6 +285,14 @@ class Plugin extends AbstractPlugin
                 /** @var Board $boardDoc */
                 $func($board, $config);
 
+                if(app('config')->get('point')['specific_group']) {
+                    $user = app('xe.user')->find($board->getUserId());
+                    if ($user->specific !== true) {
+                        \XeDB::commit();
+                        return;
+                    }
+                }
+
                 app('point::handler')->executeAction(
                     'board.write-document.'.$board->getInstanceId(),
                     $board->getUserId(),
@@ -277,6 +317,15 @@ class Plugin extends AbstractPlugin
                 $instanceId = $board->instance_id;
 
                 $user = \Auth::user();
+
+                if(app('config')->get('point')['specific_group']) {
+                    if ($user->specific !== true) {
+                        $func($board, $config);
+                        \XeDB::commit();
+                        return;
+                    }
+                }
+
                 $action = 'board.delete-document.'.$instanceId;
                 if ($pointHandler->checkAction($action, $user) == false) {
                     $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
@@ -330,6 +379,14 @@ class Plugin extends AbstractPlugin
 
                 if (array_pop($parts) == 'BoardModuleController') {
                     $user = \Auth::user();
+
+                    if(app('config')->get('point')['specific_group']) {
+                        if ($user->specific !== true) {
+                            \XeDB::commit();
+                            return;
+                        }
+                    }
+
                     $action = 'board.read-document.'.$instanceId;
                     if ($pointHandler->checkAction($action, $user) == false) {
                         $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
@@ -357,6 +414,14 @@ class Plugin extends AbstractPlugin
             function ($func, Board $board, UserInterface $user, $option, $point) {
                 \XeDB::beginTransaction();
                 $func($board, $user, $option, $point);
+
+                if(app('config')->get('point')['specific_group']) {
+                    $user = app('xe.user')->find($board->user_id);
+                    if ($user->specific !== true) {
+                        \XeDB::commit();
+                        return;
+                    }
+                }
 
                 $pointHandler = app('point::handler');
 
@@ -415,6 +480,35 @@ class Plugin extends AbstractPlugin
                 $instanceId = $boardDoc->instance_id;
 
                 $user = \Auth::user();
+
+                if(app('config')->get('point')['specific_group']) {
+                    if ($user->specific !== true) {
+                        \XeDB::commit();
+                        return $comment;
+                    }
+                }
+
+                if(app('config')->get('point')['comment_limit_hour']) {
+                    $diffHours = $boardDoc->created_at->diffInHours(Carbon::now());
+                    $commentTimeLimitConfig = $pointHandler->getCommentLimitHourConfig();
+                    if ($diffHours > $commentTimeLimitConfig) {
+                        \XeDB::commit();
+                        return $comment;
+                    }
+                }
+
+                if(app('config')->get('point')['comment_limit_count']) {
+                    $commentLimitCountConfig = $pointHandler->getCommentLimitCountConfig();
+                    $docToComments = $boardDoc->comments->filter(function ($comment) use ($user){
+                        return $comment->user_id === $user->getId();
+                    });
+                    $docToCommentCount = $docToComments->count();
+                    if ($docToCommentCount > $commentLimitCountConfig) {
+                        \XeDB::commit();
+                        return $comment;
+                    }
+                }
+
                 $action = 'board.write-comment.'.$instanceId;
                 if ($pointHandler->checkAction($action, $user) == false) {
                     $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
@@ -423,7 +517,6 @@ class Plugin extends AbstractPlugin
                     $exception->setMessage('[포인트 부족] 댓글을 등록할 수 없습니다.');
                     throw $exception;
                 }
-
                 $pointHandler->executeAction(
                     $action,
                     $user,
@@ -452,6 +545,15 @@ class Plugin extends AbstractPlugin
                 if ($board != null && $board->type == 'module/board@board') {
                     $instanceId = $board->instance_id;
                     $user = \Auth::user();
+
+                    if(app('config')->get('point')['specific_group']) {
+                        if ($user->specific !== true) {
+                            \XeDB::commit();
+                            return $result;
+                        }
+                    }
+
+
                     $action = 'board.delete-comment.'.$instanceId;
                     if ($pointHandler->checkAction($action, $user) == false) {
                         $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
@@ -491,6 +593,14 @@ class Plugin extends AbstractPlugin
 
                 if ($menuItem != null && $menuItem->type == 'board@board') {
                     $user = \Auth::user();
+
+                    if(app('config')->get('point')['specific_group']) {
+                        if ($user->specific !== true) {
+                            \XeDB::commit();
+                            return $result;
+                        }
+                    }
+
                     $action = 'board.upload-file.'.$instanceId;
                     if ($pointHandler->checkAction($action, $user) == false) {
                         $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
@@ -536,6 +646,14 @@ class Plugin extends AbstractPlugin
                 // 이미지는 제외
                 if ($menuItem != null && $menuItem->type == 'board@board' && $isImage == false) {
                     $user = \Auth::user();
+
+                    if(app('config')->get('point')['specific_group']) {
+                        if ($user->specific !== true) {
+                            \XeDB::commit();
+                            return $result;
+                        }
+                    }
+
                     $action = 'board.download-file.'.$instanceId;
                     if ($pointHandler->checkAction($action, $user) == false) {
                         $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(

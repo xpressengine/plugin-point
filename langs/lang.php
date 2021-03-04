@@ -128,4 +128,28 @@ return [
         'ko' => '그룹에 원하는 레벨을 지정하면, 회원의 포인트가 해당 레벨의 포인트에 도달할 때 그룹이 변경됩니다.',
         'en' => 'If you assign a desired level to a group, the group will change when a member\'s point reaches that level\'s point.',
     ],
+    'specificGroup' => [
+        'ko' => '특정 그룹만 포인트적용',
+        'en' => 'Points are applied only to specific groups'
+    ],
+    'specificGroupDescription' => [
+        'ko' => '회원이 선택 된 그룹일 때만 포인트가 동작합니다.',
+        'en' => 'Points only work when the member is the selected group'
+    ],
+    'commentLimitHour' => [
+        'ko' => 'comment 포인트 증가 시간 제한 (시간 기준)',
+        'en' => 'Comment point increase time limit (based on time)'
+    ],
+    'commentLimitHourDescription' => [
+    'ko' => '입력된 시간안에 작성된 글에서만 포인트 적용',
+    'en' => 'Points are applied only to articles written within the input time'
+    ],
+    'commentLimitCount' => [
+        'ko' => 'comment 포인트 증가 회원 별 횟수 제한',
+        'en' => 'Increased comment points Limit the number of times per member'
+    ],
+    'commentLimitCountDescription' => [
+        'ko' => '게시글 하나에 1명의 유저가 댓글 작성으로 포인트를 얻는 횟수 제한',
+        'en' => 'Limit the number of times one user can earn points by writing a comment per post'
+    ]
 ];

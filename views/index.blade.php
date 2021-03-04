@@ -89,6 +89,36 @@
                                                 'description' => xe_trans('point::disableReadBoardDescription')
                                             ]) !!}
                                         </li>
+                                        @if (app('config')->get('point')['specific_group'])
+                                        <li>
+                                            <label>
+                                                {{ xe_trans('point::specificGroup') }}
+                                            </label>
+                                            <select class="form-control" name="specific_group_id" >
+                                                @foreach($groupList as $group)
+                                                <option value="{{$group['id']}}" {{$group['id'] === $baseConfig['specific_group_id'] ? 'selected="selected"' : ''}}>{{$group['name']}}</option>
+                                                    @endforeach
+                                            </select>
+                                            <p class="help-block">{{xe_trans('point::specificGroupDescription')}}</p>
+                                            {{--{!! uio('formText', ['name'=> 'specific_group_id', 'value'=> $baseConfig['specific_group_id'], 'type'=>'text', 'description'=> '특정 그룹만 포인트적용']) !!}--}}
+                                        </li>
+                                        @endif
+                                        @if (app('config')->get('point')['comment_limit_hour'])
+                                            <li>
+                                                <label>
+                                                    {{ xe_trans('point::commentLimitHour') }}
+                                                </label>
+                                                {!! uio('formText', ['name'=> 'comment_limit_hour', 'value'=> $baseConfig['comment_limit_hour'], 'type'=>'number', 'description'=> xe_trans('point::commentLimitHourDescription')])  !!}
+                                            </li>
+                                        @endif
+                                        @if (app('config')->get('point')['comment_limit_count'])
+                                            <li>
+                                                <label>
+                                                    {{ xe_trans('point::commentLimitCount') }}
+                                                </label>
+                                                {!! uio('formText', ['name'=> 'comment_limit_count', 'value'=> $baseConfig['comment_limit_count'], 'type'=>'number', 'description'=> xe_trans('point::commentLimitCountDescription')])  !!}
+                                            </li>
+                                        @endif
                                     </ul>
                                     <button type="submit" class="btn btn-primary">{{xe_trans('xe::save')}}</button>
                                 </form>

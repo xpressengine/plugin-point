@@ -81,7 +81,7 @@
                             @foreach($userPoints as $point)
                                 <tr>
                                     <td>
-                                        <a href="{{route('point::setting.show', ['id' => $point->user_id])}}">{{ $point->user->getDisplayName() }}</a>
+                                        <a href="{{route('point::setting.show', ['id' => $point->user_id])}}">{{ $point->user ? $point->user->getDisplayName() : '삭제된 회원'}}</a>
                                     </td>
                                     <td>
                                         <form action="{{ route('point::user_point.update') }}" data-submit="xe-ajax" method="POST" data-callback="showMessage">

@@ -157,6 +157,7 @@ class SettingController extends Origin
     public function user(Request $request, Handler $handler, UserHandler $userHandler)
     {
         $query = Point::query();
+        $query = $query->whereHas('user');
 
         $current = Carbon::now();
         //기간 검색

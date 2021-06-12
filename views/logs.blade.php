@@ -57,7 +57,7 @@
                                 @foreach($logs as $log)
                                     <tr>
                                         <td>
-                                            <a href="{{route('point::setting.show', ['id' => $log->user_id])}}">{{ $log->user->getDisplayName() }}</a>
+                                            <a href="{{route('point::setting.show', ['id' => $log->user_id])}}">{{ $log->user ? $log->user->getDisplayName() : '삭제된 회원'}}</a>
                                         </td>
                                         <td>{{ $log->point }}</td>
                                         <td>{{ xe_trans($log->title) }}</td>

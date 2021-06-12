@@ -355,6 +355,12 @@ class Plugin extends AbstractPlugin
                 $currentReadCount = $board->read_count;
                 $func($board, $user);
 
+                // 공지사항은 포인트 작업을 진행하지 않음.
+                if ($board->getAttribute('status') === Board::STATUS_NOTICE) {
+                    \XeDB::commit();
+                    return;
+                }
+
                 // 조회수 변경되지 않음, 이미 읽은 글
                 if ($currentReadCount == $board->read_count) {
                     \XeDB::commit();

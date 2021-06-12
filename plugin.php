@@ -314,6 +314,10 @@ class Plugin extends AbstractPlugin
                     \XeDB::commit();
                     return;
                 }
+
+
+
+
                 $instanceId = $board->instance_id;
 
                 $user = \Auth::user();
@@ -355,24 +359,24 @@ class Plugin extends AbstractPlugin
                 $currentReadCount = $board->read_count;
                 $func($board, $user);
 
-                // 공지사항은 포인트 작업을 진행하지 않음.
-                if ($board->getAttribute('status') === Board::STATUS_NOTICE) {
-                    \XeDB::commit();
-                    return;
-                }
+                // 공지사항을 열람하는 경우.
+                $isNotice = $board->getAttribute('status') === Board::STATUS_NOTICE;
 
                 // 조회수 변경되지 않음, 이미 읽은 글
-                if ($currentReadCount == $board->read_count) {
+                $isAlreadyRead = $currentReadCount == $board->read_count;
+
+                // 자신이 작성한 글을 열람하는 경우.
+                $isOwner = $board->getUserId() === $user->getId();
+
+                // 작성된 글의 타입이 `module/board@board` 가 아닌 경우.
+                $isNotBoardType = $board->type !== 'module/board@board';
+
+                if ($isNotice || $isAlreadyRead || $isOwner || $isNotBoardType) {
                     \XeDB::commit();
                     return;
                 }
 
                 $pointHandler = app('point::handler');
-
-                if($board->type != 'module/board@board') {
-                    \XeDB::commit();
-                    return;
-                }
                 $instanceId = $board->instance_id;
 
                 // check url

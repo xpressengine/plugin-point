@@ -20,7 +20,9 @@ use Route;
 use Schema;
 use Xpressengine\Config\ConfigEntity;
 use Xpressengine\Menu\Models\MenuItem;
+use Xpressengine\Permission\Instance as PermissionInstance;
 use Xpressengine\Plugin\AbstractPlugin;
+use Xpressengine\Plugins\Board\BoardPermissionHandler;
 use Xpressengine\Plugins\Board\Models\Board;
 use Xpressengine\Plugins\Board\Modules\BoardModule;
 use Xpressengine\Plugins\Comment\Models\Comment;
@@ -310,13 +312,18 @@ class Plugin extends AbstractPlugin
                 \XeDB::beginTransaction();
                 $pointHandler = app('point::handler');
 
-                if($board->type != 'module/board@board') {
+                // 작성된 글의 타입이 `module/board@board` 가 아닌 경우.
+                $isNotBoardType = $board->type !== 'module/board@board';
+
+                // 게시글글이 작성된 게시판의 manage 권한을 가지고 있는 경우.
+                $boardPermission = app('xe.board.permission');
+                $boardPermissionInstance = new PermissionInstance($boardPermission->name($board->instance_id));
+                $hasManagingPermission = \Gate::allows(BoardPermissionHandler::ACTION_MANAGE, $boardPermissionInstance);
+
+                if($isNotBoardType || $hasManagingPermission) {
                     \XeDB::commit();
                     return;
                 }
-
-
-
 
                 $instanceId = $board->instance_id;
 

@@ -69,7 +69,6 @@ abstract class UserActions
                 request()->session()->flash('received_point', ['action' => $action, 'point' => app('point::handler')->getActionPoint($action)]);
             }
 
-            $pointHandler->executeAction($action, $user);
             return $user;
         });
     }

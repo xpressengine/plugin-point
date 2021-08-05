@@ -13,13 +13,13 @@
  */
 namespace Xpressengine\Plugins\Point;
 
+use Carbon\Carbon;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Xpressengine\Config\ConfigManager;
 use Xpressengine\Menu\Models\MenuItem;
-use Xpressengine\Menu\ModuleHandler;
 use Xpressengine\Plugins\Point\Models\Log;
 use Xpressengine\Plugins\Point\Models\Point;
-use Xpressengine\Routing\InstanceRoute;
+use Xpressengine\User\Models\User;
 use Xpressengine\User\UserInterface;
 
 /**
@@ -328,6 +328,11 @@ class Handler
         }
     }
 
+    public function isReceivedTodayPoint(User $user, string $action)
+    {
+        return Log::where([['user_id', $user->id], ['action', $action]])->whereDate('created_at', Carbon::today())->exists();
+    }
+
     public function checkAction($action, $user)
     {
         if ($this->isUse() == false) {
@@ -359,8 +364,11 @@ class Handler
             // guest skip
             if ($user->getId() != '' && $score != 0) {
                 $this->addUserPoint($user, $score, $content, $action);
+                return true;
             }
         }
+
+        return false;
     }
 
     public function logging($action, $userId, $point, $content = [])

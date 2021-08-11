@@ -65,7 +65,10 @@ class Plugin extends AbstractPlugin
      */
     public function boot()
     {
-        $this->registerEvent();
+        if ( app('xe.point.handler')->isUse() ) {
+            $this->registerEvent();
+        }
+
         $this->registerUserMacro();
         $this->registerDocumentMacro();
 
@@ -295,6 +298,7 @@ class Plugin extends AbstractPlugin
                 $hasManagingPermission = \Gate::allows(BoardPermissionHandler::ACTION_MANAGE, $boardPermissionInstance);
 
                 if($isNotBoardType || $hasManagingPermission) {
+                    $func($board, $config);
                     \XeDB::commit();
                     return;
                 }

@@ -27,6 +27,7 @@ use Xpressengine\Plugins\Board\Models\Board;
 use Xpressengine\Plugins\Board\Modules\BoardModule;
 use Xpressengine\Plugins\Comment\Models\Comment;
 use Xpressengine\Plugins\Point\Models\Point;
+use Xpressengine\Presenter\Html\HtmlPresenter;
 use Xpressengine\User\UserInterface;
 use XeToggleMenu;
 
@@ -69,6 +70,24 @@ class Plugin extends AbstractPlugin
         $this->registerDocumentMacro();
 
         $this->route();
+
+        intercept(
+            sprintf('%s@render', HtmlPresenter::class),
+            $this->getId() . '::html_presenter_render',
+            function ($func) {
+                if (request()->session()->has('received_point'))
+                {
+                    $receivedPoint = request()->session()->get('received_point') ['point'];
+                    $jsonPath = self::asset('assets/jsons/reward-recieved.json');
+                    $renderHtml =  view('point::views.action', compact('jsonPath', 'receivedPoint'))->render();
+
+
+                    \XeFrontend::html('received_point')->content($renderHtml)->appendTo('body')->load();
+                }
+
+                return $func();
+            }
+        );
     }
 
     /**
@@ -163,54 +182,9 @@ class Plugin extends AbstractPlugin
 
     protected function registerEvent()
     {
-        // user - register
-        intercept(
-            'XeUser@create',
-            'point@create',
-            function ($target, $data, $token = null) {
-                $user = $target($data, $token);
-                if(app('config')->get('point')['specific_group']) {
-                    if ($user->specific !== true) {
-                        return $user;
-                    }
-                }
-
-                $pointHandler = app('point::handler');
-                $action = 'user_register';
-                $pointHandler->executeAction($action, $user);
-
-                return $user;
-            }
-        );
-
-        // user - login
-        app('events')->listen('auth.login', function ($user) {
-            if ($user->loginAt === null) {
-                return $user;
-            }
-            if ($user->loginAt->isSameDay(Carbon::now())) {
-                return $user;
-            }
-
-            if(app('config')->get('point')['specific_group']) {
-                if ($user->specific !== true) {
-                    return $user;
-                }
-            }
-
-            // start point
-            $pointHandler = app('point::handler');
-            $action = 'user_login';
-            if ($pointHandler->checkAction($action, $user) == false) {
-                $exception = new \Xpressengine\Support\Exceptions\HttpXpressengineException(
-                    [], 500
-                );
-                $exception->setMessage('[포인트 부족] login 할 수 없습니다.');
-                throw $exception;
-            }
-
-            $pointHandler->executeAction($action, $user);
-        });
+        // user
+        EventListeners\UserActions::listenRegister();
+        EventListeners\UserActions::listenLogin();
 
         // board - write document
         intercept(

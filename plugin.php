@@ -321,6 +321,7 @@ class Plugin extends AbstractPlugin
                 $hasManagingPermission = \Gate::allows(BoardPermissionHandler::ACTION_MANAGE, $boardPermissionInstance);
 
                 if($isNotBoardType || $hasManagingPermission) {
+                    $func($board, $config);
                     \XeDB::commit();
                     return;
                 }
